@@ -1,10 +1,24 @@
 Package: bmfvs
 Title: Bayesian Model-Free Variable Screening
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R:
     person("Eduardo", "Vasquez", , "eduardo.vasqueztapia@duke.edu", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: Bayesian model-free variable screening for multivariate responses
+    of mixed type (continuous, categorical, and count-valued). The response
+    distribution is modeled nonparametrically with a finite mixture using a
+    product kernel, and predictors are screened via posterior probabilities of
+    conditional independence computed from closed-form Bayes factors, with
+    empirical Bayes estimation of the prior probabilities.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
+Imports:
+    Matrix,
+    methods,
+    Rcpp,
+    stats,
+    utils
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
