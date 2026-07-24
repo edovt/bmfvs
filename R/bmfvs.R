@@ -18,6 +18,7 @@
 #'
 #' @export
 #' @examples
+#' NULL
 bmfvs <- function(
   Y,
   X,
@@ -25,7 +26,7 @@ bmfvs <- function(
   n_burnin,
   k,
   y_types = NULL,
-  alpha = k,
+  alpha = NULL,
   prior_params = list(),
   hyperparams = list(),
   kappa = c(1 / 2, 1 / 6, 1 / 6, 1 / 6),
@@ -47,22 +48,14 @@ bmfvs <- function(
   if (nrow(X) != n) {
     stop("X must have the same number of rows as Y")
   }
+
+  # TODO: check correctness of X
   if (any(X < 0) || any(X != floor(X))) {
     stop("X must contain non-negative integers 0, ..., d_j - 1")
   }
 
-  # alpha_c gets set in gibbs_mixed_cpp
-  prior_params <- utils::modifyList(
-    list(
-      beta0 = 0.01,
-      nu0 = qN + 2,
-      eps0 = qN + 2,
-      alpha_c = NULL,
-      alpha_p = 1,
-      beta_p = 0.1
-    ),
-    prior_params
-  )
+  # Defaults params merged and expanded
+  prior_params <- expand_prior_params(prior_params, qN, qC, qP)
   hp <- utils::modifyList(
     list(
       tau_omega = NULL,
@@ -75,23 +68,19 @@ bmfvs <- function(
   )
 
   # Stage 1: Gibbs sampler of marginal posterior ----------------------------
-  if (verbose) {
-    cat(
-      "Stage 1: Gibbs sampler (k =",
-      k,
-      ", qN =",
-      qN,
-      ", qC =",
-      qC,
-      ", qP =",
-      qP,
-      ", n_iter =",
-      n_iter,
-      ")...\n"
-    )
-  }
-  if (is.null(gibbs_fit)) {
-    fit <- gibbs_mixed_cpp(
+  # If k is a vector, the WAIC step selects the best k
+  waic <- NULL
+  if (!is.null(gibbs_fit)) {
+    fit <- if (!is.null(gibbs_fit$fit)) gibbs_fit$fit else gibbs_fit
+    k <- ncol(fit$w)
+    if (verbose) {
+      cat("Stage 1: using supplied Gibbs fit (k =", k, ")...\n")
+    }
+  } else if (length(k) > 1) {
+    if (verbose) {
+      cat("Stage 1: selecting k via WAIC (candidates:", k, ")...\n")
+    }
+    sel <- select_k_core(
       Y_N,
       Y_C,
       Y_P,
@@ -99,15 +88,38 @@ bmfvs <- function(
       n_iter,
       n_burnin,
       alpha,
-      prior_params$beta0,
-      prior_params$nu0,
-      prior_params$eps0,
-      prior_params$alpha_c,
-      prior_params$alpha_p,
-      prior_params$beta_p
+      prior_params,
+      verbose
     )
+    k <- sel$k
+    fit <- sel$fit
+    waic <- sel$comparison
   } else {
-    fit <- gibbs_fit
+    if (verbose) {
+      cat(
+        "Stage 1: Gibbs sampler (k =",
+        k,
+        ", qN =",
+        qN,
+        ", qC =",
+        qC,
+        ", qP =",
+        qP,
+        ", n_iter =",
+        n_iter,
+        ")...\n"
+      )
+    }
+    fit <- fit_gibbs_mixed(
+      Y_N,
+      Y_C,
+      Y_P,
+      k,
+      n_iter,
+      n_burnin,
+      alpha,
+      prior_params
+    )
   }
 
   # Stage 1.5: hyperparameter selection (per block, common fit) -------------
@@ -143,7 +155,7 @@ bmfvs <- function(
   }
 
   # Stage 2: compute log Bayes factors --------------------------------------
-  S <- n_iter - n_burnin
+  S <- nrow(fit$z)
   p <- ncol(X)
   if (verbose) {
     cat("Stage 2: Bayes factors (p =", p, ", S =", S, ")...\n")
@@ -198,6 +210,8 @@ bmfvs <- function(
       hyperparams = hp,
       log_bf1 = log_bf1,
       log_bf2 = log_bf2,
+      k = k,
+      waic = waic,
       fit = fit,
       y_types = resp$y_types,
       y_levels = resp$y_levels
@@ -298,4 +312,26 @@ split_response <- function(Y, y_types = NULL) {
   }
 
   list(Y_N = Y_N, Y_C = Y_C, Y_P = Y_P, y_types = y_types, y_levels = y_levels)
+}
+
+expand_prior_params <- function(prior_params, qN, qC, qP) {
+  pp <- utils::modifyList(
+    list(
+      beta0 = 0.01,
+      nu0 = qN + 2,
+      eps0 = qN + 2,
+      alpha_c = NULL, # set in gibbs_mixed_cpp
+      alpha_p = 1,
+      beta_p = 0.1
+    ),
+    prior_params
+  )
+  if (!is.null(pp$alpha_c) && qC > 0) {
+    pp$alpha_c <- as.integer(rep(pp$alpha_c, length.out = qC))
+  }
+  if (qP > 0) {
+    pp$alpha_p <- rep(pp$alpha_p, length.out = qP)
+    pp$beta_p <- rep(pp$beta_p, length.out = qP)
+  }
+  pp
 }

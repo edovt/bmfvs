@@ -11,7 +11,7 @@ bmfvs(
   n_burnin,
   k,
   y_types = NULL,
-  alpha = k,
+  alpha = NULL,
   prior_params = list(),
   hyperparams = list(),
   kappa = c(1/2, 1/6, 1/6, 1/6),
@@ -22,4 +22,7 @@ bmfvs(
 }
 \description{
 Bayesian Model-Free Variable Screening (BMFVS)
+}
+\examples{
+NULL
 }

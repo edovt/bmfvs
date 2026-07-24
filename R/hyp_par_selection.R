@@ -24,7 +24,7 @@ select_tau_omega <- function(w_samples, interval_w = c(1e-3, 1e4)) {
     t1 + t2 - t3
   }
 
-  optimize(obj_function, interval_w, maximum = TRUE)$maximum
+  stats::optimize(obj_function, interval_w, maximum = TRUE)$maximum
 }
 
 # Gaussian selection --------------------------------------------------------
@@ -75,7 +75,11 @@ select_tau_gaussian <- function(
       2 * Sk * lmvgamma(tau_Sigma / 2, q)
   }
 
-  tau_Sigma <- optimize(obj_function, interval_Sigma, maximum = TRUE)$maximum
+  tau_Sigma <- stats::optimize(
+    obj_function,
+    interval_Sigma,
+    maximum = TRUE
+  )$maximum
   c(drop(tau_mu), tau_Sigma)
 }
 
@@ -102,7 +106,7 @@ select_tau_multinomial <- function(psi_samples, interval_psi = c(1e-3, 1e4)) {
     t1 + t2
   }
 
-  optimize(obj_function, interval_psi, maximum = TRUE)$maximum
+  stats::optimize(obj_function, interval_psi, maximum = TRUE)$maximum
 }
 
 # Poisson selection ---------------------------------------------------------
@@ -130,5 +134,5 @@ select_tau_poisson <- function(rho_samples, interval_rho = c(1e-3, 1e4)) {
     t1 - t2 + t3
   }
 
-  optimize(obj_function, interval_rho, maximum = TRUE)$maximum
+  stats::optimize(obj_function, interval_rho, maximum = TRUE)$maximum
 }
