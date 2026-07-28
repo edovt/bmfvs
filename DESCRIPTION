@@ -23,3 +23,5 @@ Imports:
 LinkingTo:
     Rcpp,
     RcppArmadillo
+URL: https://github.com/edovt/bmfvs
+BugReports: https://github.com/edovt/bmfvs/issues
