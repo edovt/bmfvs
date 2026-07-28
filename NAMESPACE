@@ -3,3 +3,5 @@
 export(bmfvs)
 export(plot_gibbs)
 export(select_k)
+importFrom(Rcpp,sourceCpp)
+useDynLib(bmfvs, .registration = TRUE)
