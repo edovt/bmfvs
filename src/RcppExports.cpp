@@ -11,8 +11,36 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// log_bf_sample_cpp
+List log_bf_sample_cpp(IntegerVector z_, IntegerMatrix X_, IntegerVector d_j_, int k, NumericVector w_, double tau_omega, NumericMatrix Y_N_, List mu_, List Sigma_, double tau_mu, double tau_sigma, IntegerMatrix Y_C_, List psi_, double tau_psi, NumericMatrix Y_P_, NumericMatrix rho_, double tau_rho, int n_threads);
+RcppExport SEXP _bmfvs_log_bf_sample_cpp(SEXP z_SEXP, SEXP X_SEXP, SEXP d_j_SEXP, SEXP kSEXP, SEXP w_SEXP, SEXP tau_omegaSEXP, SEXP Y_N_SEXP, SEXP mu_SEXP, SEXP Sigma_SEXP, SEXP tau_muSEXP, SEXP tau_sigmaSEXP, SEXP Y_C_SEXP, SEXP psi_SEXP, SEXP tau_psiSEXP, SEXP Y_P_SEXP, SEXP rho_SEXP, SEXP tau_rhoSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type z_(z_SEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type X_(X_SEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type d_j_(d_j_SEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type w_(w_SEXP);
+    Rcpp::traits::input_parameter< double >::type tau_omega(tau_omegaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y_N_(Y_N_SEXP);
+    Rcpp::traits::input_parameter< List >::type mu_(mu_SEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma_(Sigma_SEXP);
+    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
+    Rcpp::traits::input_parameter< double >::type tau_sigma(tau_sigmaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type Y_C_(Y_C_SEXP);
+    Rcpp::traits::input_parameter< List >::type psi_(psi_SEXP);
+    Rcpp::traits::input_parameter< double >::type tau_psi(tau_psiSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y_P_(Y_P_SEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type rho_(rho_SEXP);
+    Rcpp::traits::input_parameter< double >::type tau_rho(tau_rhoSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(log_bf_sample_cpp(z_, X_, d_j_, k, w_, tau_omega, Y_N_, mu_, Sigma_, tau_mu, tau_sigma, Y_C_, psi_, tau_psi, Y_P_, rho_, tau_rho, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gibbs_mixed_cpp
-List gibbs_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, double beta0, Nullable<NumericVector> nu0_, Nullable<NumericVector> eps0_, Nullable<IntegerVector> alpha_c_, Nullable<NumericVector> alpha_p_, Nullable<NumericVector> beta_p_);
+List gibbs_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, double beta0, Nullable<NumericVector> nu0_, Nullable<NumericVector> eps0_, Nullable<NumericVector> alpha_c_, Nullable<NumericVector> alpha_p_, Nullable<NumericVector> beta_p_);
 RcppExport SEXP _bmfvs_gibbs_mixed_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP kSEXP, SEXP n_iterSEXP, SEXP n_burninSEXP, SEXP alphaSEXP, SEXP beta0SEXP, SEXP nu0_SEXP, SEXP eps0_SEXP, SEXP alpha_c_SEXP, SEXP alpha_p_SEXP, SEXP beta_p_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -27,7 +55,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type beta0(beta0SEXP);
     Rcpp::traits::input_parameter< Nullable<NumericVector> >::type nu0_(nu0_SEXP);
     Rcpp::traits::input_parameter< Nullable<NumericVector> >::type eps0_(eps0_SEXP);
-    Rcpp::traits::input_parameter< Nullable<IntegerVector> >::type alpha_c_(alpha_c_SEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericVector> >::type alpha_c_(alpha_c_SEXP);
     Rcpp::traits::input_parameter< Nullable<NumericVector> >::type alpha_p_(alpha_p_SEXP);
     Rcpp::traits::input_parameter< Nullable<NumericVector> >::type beta_p_(beta_p_SEXP);
     rcpp_result_gen = Rcpp::wrap(gibbs_mixed_cpp(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, beta0, nu0_, eps0_, alpha_c_, alpha_p_, beta_p_));
@@ -36,6 +64,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_bmfvs_log_bf_sample_cpp", (DL_FUNC) &_bmfvs_log_bf_sample_cpp, 18},
     {"_bmfvs_gibbs_mixed_cpp", (DL_FUNC) &_bmfvs_gibbs_mixed_cpp, 13},
     {NULL, NULL, 0}
 };

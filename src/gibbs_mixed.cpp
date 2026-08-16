@@ -64,7 +64,7 @@ List gibbs_mixed_cpp(
     double beta0 = 0.01,
     Nullable<NumericVector> nu0_ = R_NilValue,          // default: qN + 2
     Nullable<NumericVector> eps0_ = R_NilValue,         // default: qN + 2
-    Nullable<IntegerVector> alpha_c_ = R_NilValue,      // default: m_t
+    Nullable<NumericVector> alpha_c_ = R_NilValue,      // default: m_t
     Nullable<NumericVector> alpha_p_ = R_NilValue,      // default: rep(1, qP)
     Nullable<NumericVector> beta_p_ = R_NilValue        // default: rep(0.1, qP)
 ) {
@@ -85,11 +85,11 @@ List gibbs_mixed_cpp(
   for (int t = 0; t < qC; t++) {
     m(t) = Y_C.col(t).max();
   }
-  ivec alpha_c;
+  vec alpha_c;
   if (alpha_c_.isNull()) {
-    alpha_c = m.head(std::max(qC, 1));
+    alpha_c = conv_to<vec>::from(m.head(std::max(qC, 1)));
   } else {
-    alpha_c = as<ivec>(alpha_c_.get());
+    alpha_c = as<vec>(alpha_c_.get());
   }
 
   // --- Poisson block priors ---
@@ -261,7 +261,7 @@ List gibbs_mixed_cpp(
         }
         vec dir_alpha_t(m(t));
         for (int s = 0; s < m(t); s++) {
-          dir_alpha_t(s) = (double)alpha_c(t) / m(t) + counts(s);
+          dir_alpha_t(s) = alpha_c(t) / m(t) + counts(s);
         }
         psi[t].row(h) = rdirichlet_vec(dir_alpha_t).t();
       }

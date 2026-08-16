@@ -17,6 +17,7 @@ Imports:
     graphics,
     loo,
     Matrix,
+    parallel,
     Rcpp,
     stats,
     utils

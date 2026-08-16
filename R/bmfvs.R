@@ -32,8 +32,11 @@ bmfvs <- function(
   kappa = c(1 / 2, 1 / 6, 1 / 6, 1 / 6),
   empirical_bayes = TRUE,
   verbose = TRUE,
-  gibbs_fit = NULL
+  gibbs_fit = NULL,
+  backend = c("cpp", "r"),
+  n_threads = default_threads()
 ) {
+  backend <- match.arg(backend)
   # Stage 0: checks and response splitting ----------------------------------
   resp <- split_response(Y, y_types)
   Y_N <- resp$Y_N
@@ -170,7 +173,9 @@ bmfvs <- function(
     tau_mu = hp$tau_mu,
     tau_Sigma = hp$tau_Sigma,
     tau_psi = hp$tau_psi,
-    tau_rho = hp$tau_rho
+    tau_rho = hp$tau_rho,
+    backend = backend,
+    n_threads = n_threads
   )
   log_bf1 <- bfs$log_bf1
   log_bf2 <- bfs$log_bf2
@@ -187,16 +192,10 @@ bmfvs <- function(
   if (verbose) {
     cat("Stage 3: P(H0j)...\n")
   }
-  log_kappa <- log(kappa)
-  log_terms <- rbind(
-    rep(log_kappa[1], length(log_bf1)),
-    log_kappa[2] + as.vector(log_bf1),
-    log_kappa[3] + as.vector(log_bf2),
-    log_kappa[4] + as.vector(log_bf1 + log_bf2)
-  )
-  log_denom <- logsumexp_cols(log_terms)
-  prob_null_mat <- matrix(exp(log_terms[1, ] - log_denom), nrow = S)
-  prob_null <- colMeans(prob_null_mat)
+  b1 <- as.vector(log_bf1)
+  b2 <- as.vector(log_bf2)
+  wts <- bf_weights(log(kappa), b1, b2, b1 + b2)
+  prob_null <- colMeans(matrix(wts$w0, nrow = S))
   names(prob_null) <- colnames(X)
 
   if (verbose) {
@@ -327,7 +326,7 @@ expand_prior_params <- function(prior_params, qN, qC, qP) {
     prior_params
   )
   if (!is.null(pp$alpha_c) && qC > 0) {
-    pp$alpha_c <- as.integer(rep(pp$alpha_c, length.out = qC))
+    pp$alpha_c <- as.numeric(rep(pp$alpha_c, length.out = qC))
   }
   if (qP > 0) {
     pp$alpha_p <- rep(pp$alpha_p, length.out = qP)
