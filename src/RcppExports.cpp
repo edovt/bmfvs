@@ -39,6 +39,55 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// collapsed_log_m_cpp
+double collapsed_log_m_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, const List& pp, const IntegerVector& add_idx, const IntegerVector& remove_idx);
+RcppExport SEXP _bmfvs_collapsed_log_m_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP ppSEXP, SEXP add_idxSEXP, SEXP remove_idxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type add_idx(add_idxSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type remove_idx(remove_idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_log_m_cpp(Y_N, Y_C, Y_P, pp, add_idx, remove_idx));
+    return rcpp_result_gen;
+END_RCPP
+}
+// collapsed_log_pred_cpp
+double collapsed_log_pred_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, const List& pp, const IntegerVector& idx, int i);
+RcppExport SEXP _bmfvs_collapsed_log_pred_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP ppSEXP, SEXP idxSEXP, SEXP iSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type idx(idxSEXP);
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_log_pred_cpp(Y_N, Y_C, Y_P, pp, idx, i));
+    return rcpp_result_gen;
+END_RCPP
+}
+// collapsed_log_post_cpp
+double collapsed_log_post_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, const List& pp, const arma::ivec& z, int k, double alpha);
+RcppExport SEXP _bmfvs_collapsed_log_post_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP ppSEXP, SEXP zSEXP, SEXP kSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_log_post_cpp(Y_N, Y_C, Y_P, pp, z, k, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gibbs_mixed_cpp
 List gibbs_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, double beta0, Nullable<NumericVector> nu0_, Nullable<NumericVector> eps0_, Nullable<NumericVector> alpha_c_, Nullable<NumericVector> alpha_p_, Nullable<NumericVector> beta_p_);
 RcppExport SEXP _bmfvs_gibbs_mixed_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP kSEXP, SEXP n_iterSEXP, SEXP n_burninSEXP, SEXP alphaSEXP, SEXP beta0SEXP, SEXP nu0_SEXP, SEXP eps0_SEXP, SEXP alpha_c_SEXP, SEXP alpha_p_SEXP, SEXP beta_p_SEXP) {
@@ -65,6 +114,9 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_bmfvs_log_bf_sample_cpp", (DL_FUNC) &_bmfvs_log_bf_sample_cpp, 18},
+    {"_bmfvs_collapsed_log_m_cpp", (DL_FUNC) &_bmfvs_collapsed_log_m_cpp, 6},
+    {"_bmfvs_collapsed_log_pred_cpp", (DL_FUNC) &_bmfvs_collapsed_log_pred_cpp, 6},
+    {"_bmfvs_collapsed_log_post_cpp", (DL_FUNC) &_bmfvs_collapsed_log_post_cpp, 7},
     {"_bmfvs_gibbs_mixed_cpp", (DL_FUNC) &_bmfvs_gibbs_mixed_cpp, 13},
     {NULL, NULL, 0}
 };

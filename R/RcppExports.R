@@ -5,6 +5,18 @@ log_bf_sample_cpp <- function(z_, X_, d_j_, k, w_, tau_omega, Y_N_, mu_, Sigma_,
     .Call(`_bmfvs_log_bf_sample_cpp`, z_, X_, d_j_, k, w_, tau_omega, Y_N_, mu_, Sigma_, tau_mu, tau_sigma, Y_C_, psi_, tau_psi, Y_P_, rho_, tau_rho, n_threads)
 }
 
+collapsed_log_m_cpp <- function(Y_N, Y_C, Y_P, pp, add_idx, remove_idx) {
+    .Call(`_bmfvs_collapsed_log_m_cpp`, Y_N, Y_C, Y_P, pp, add_idx, remove_idx)
+}
+
+collapsed_log_pred_cpp <- function(Y_N, Y_C, Y_P, pp, idx, i) {
+    .Call(`_bmfvs_collapsed_log_pred_cpp`, Y_N, Y_C, Y_P, pp, idx, i)
+}
+
+collapsed_log_post_cpp <- function(Y_N, Y_C, Y_P, pp, z, k, alpha) {
+    .Call(`_bmfvs_collapsed_log_post_cpp`, Y_N, Y_C, Y_P, pp, z, k, alpha)
+}
+
 gibbs_mixed_cpp <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha = -1, beta0 = 0.01, nu0_ = NULL, eps0_ = NULL, alpha_c_ = NULL, alpha_p_ = NULL, beta_p_ = NULL) {
     .Call(`_bmfvs_gibbs_mixed_cpp`, Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, beta0, nu0_, eps0_, alpha_c_, alpha_p_, beta_p_)
 }
