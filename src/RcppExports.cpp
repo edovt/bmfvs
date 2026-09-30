@@ -88,6 +88,63 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// collapsed_cache_check_cpp
+List collapsed_cache_check_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, const List& pp, int k, double alpha, std::string sampler, int n_sweeps);
+RcppExport SEXP _bmfvs_collapsed_cache_check_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP ppSEXP, SEXP kSEXP, SEXP alphaSEXP, SEXP samplerSEXP, SEXP n_sweepsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< std::string >::type sampler(samplerSEXP);
+    Rcpp::traits::input_parameter< int >::type n_sweeps(n_sweepsSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_cache_check_cpp(Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_sweeps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// collapsed_state_freq_cpp
+NumericVector collapsed_state_freq_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, const List& pp, int k, double alpha, std::string sampler, double n_steps, double burn_steps);
+RcppExport SEXP _bmfvs_collapsed_state_freq_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP ppSEXP, SEXP kSEXP, SEXP alphaSEXP, SEXP samplerSEXP, SEXP n_stepsSEXP, SEXP burn_stepsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< std::string >::type sampler(samplerSEXP);
+    Rcpp::traits::input_parameter< double >::type n_steps(n_stepsSEXP);
+    Rcpp::traits::input_parameter< double >::type burn_steps(burn_stepsSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_state_freq_cpp(Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_steps, burn_steps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// collapsed_mixed_cpp
+List collapsed_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, const List& pp, std::string sampler, double xi);
+RcppExport SEXP _bmfvs_collapsed_mixed_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP kSEXP, SEXP n_iterSEXP, SEXP n_burninSEXP, SEXP alphaSEXP, SEXP ppSEXP, SEXP samplerSEXP, SEXP xiSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_N(Y_NSEXP);
+    Rcpp::traits::input_parameter< const arma::imat& >::type Y_C(Y_CSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_P(Y_PSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type n_iter(n_iterSEXP);
+    Rcpp::traits::input_parameter< int >::type n_burnin(n_burninSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pp(ppSEXP);
+    Rcpp::traits::input_parameter< std::string >::type sampler(samplerSEXP);
+    Rcpp::traits::input_parameter< double >::type xi(xiSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapsed_mixed_cpp(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, sampler, xi));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gibbs_mixed_cpp
 List gibbs_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, double beta0, Nullable<NumericVector> nu0_, Nullable<NumericVector> eps0_, Nullable<NumericVector> alpha_c_, Nullable<NumericVector> alpha_p_, Nullable<NumericVector> beta_p_);
 RcppExport SEXP _bmfvs_gibbs_mixed_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP kSEXP, SEXP n_iterSEXP, SEXP n_burninSEXP, SEXP alphaSEXP, SEXP beta0SEXP, SEXP nu0_SEXP, SEXP eps0_SEXP, SEXP alpha_c_SEXP, SEXP alpha_p_SEXP, SEXP beta_p_SEXP) {
@@ -117,6 +174,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bmfvs_collapsed_log_m_cpp", (DL_FUNC) &_bmfvs_collapsed_log_m_cpp, 6},
     {"_bmfvs_collapsed_log_pred_cpp", (DL_FUNC) &_bmfvs_collapsed_log_pred_cpp, 6},
     {"_bmfvs_collapsed_log_post_cpp", (DL_FUNC) &_bmfvs_collapsed_log_post_cpp, 7},
+    {"_bmfvs_collapsed_cache_check_cpp", (DL_FUNC) &_bmfvs_collapsed_cache_check_cpp, 8},
+    {"_bmfvs_collapsed_state_freq_cpp", (DL_FUNC) &_bmfvs_collapsed_state_freq_cpp, 9},
+    {"_bmfvs_collapsed_mixed_cpp", (DL_FUNC) &_bmfvs_collapsed_mixed_cpp, 10},
     {"_bmfvs_gibbs_mixed_cpp", (DL_FUNC) &_bmfvs_gibbs_mixed_cpp, 13},
     {NULL, NULL, 0}
 };

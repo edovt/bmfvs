@@ -153,3 +153,20 @@ expect_close <- function(object, expected, tol = 1e-10) {
   expect_lt(abs(object - expected), tol)
 }
 
+# The slow correctness tests (T6-T8) run only when BMFVS_SLOW_TESTS=true
+skip_if_not_slow <- function() {
+  skip_on_cran()
+  skip_if_not(
+    identical(Sys.getenv("BMFVS_SLOW_TESTS"), "true"),
+    "slow test: set BMFVS_SLOW_TESTS=true to run"
+  )
+}
+
+# Log collapsed posterior assembled in R from the cluster marginals
+ref_log_post <- function(resp, z, k, alpha) {
+  sum(vapply(
+    seq_len(k),
+    \(h) lgamma(alpha / k + sum(z == h)) + cm_log_m(resp, which(z == h)),
+    numeric(1)
+  ))
+}

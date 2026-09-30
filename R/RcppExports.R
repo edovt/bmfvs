@@ -17,6 +17,18 @@ collapsed_log_post_cpp <- function(Y_N, Y_C, Y_P, pp, z, k, alpha) {
     .Call(`_bmfvs_collapsed_log_post_cpp`, Y_N, Y_C, Y_P, pp, z, k, alpha)
 }
 
+collapsed_cache_check_cpp <- function(Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_sweeps) {
+    .Call(`_bmfvs_collapsed_cache_check_cpp`, Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_sweeps)
+}
+
+collapsed_state_freq_cpp <- function(Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_steps, burn_steps) {
+    .Call(`_bmfvs_collapsed_state_freq_cpp`, Y_N, Y_C, Y_P, pp, k, alpha, sampler, n_steps, burn_steps)
+}
+
+collapsed_mixed_cpp <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, sampler, xi = 0.5) {
+    .Call(`_bmfvs_collapsed_mixed_cpp`, Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, sampler, xi)
+}
+
 gibbs_mixed_cpp <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha = -1, beta0 = 0.01, nu0_ = NULL, eps0_ = NULL, alpha_c_ = NULL, alpha_p_ = NULL, beta_p_ = NULL) {
     .Call(`_bmfvs_gibbs_mixed_cpp`, Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, beta0, nu0_, eps0_, alpha_c_, alpha_p_, beta_p_)
 }
