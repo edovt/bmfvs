@@ -12,8 +12,19 @@ select_k(
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
-  verbose = TRUE
+  verbose = TRUE,
+  sampler = c("nonreversible", "marginal", "conditional")
 )
+}
+\arguments{
+\item{sampler}{Stage-1 sampler for the mixture. \code{"nonreversible"} (the
+default) is the lifted non-reversible sampler of Ascolani and Zanella
+(2025) on the collapsed posterior of the allocations, \code{"marginal"} is the
+collapsed (marginal) Gibbs sampler, and \code{"conditional"} is the Gibbs
+sampler that alternates between the allocations and the mixture
+parameters. The collapsed samplers draw the weights and kernel parameters
+given the allocations at every saved iteration. For all three, one
+iteration is n single-observation updates of the allocations.}
 }
 \description{
 Fits the baseline mixture model for each value in 'k' and compares the fits

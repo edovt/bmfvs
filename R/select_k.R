@@ -2,23 +2,44 @@
 # (Supplemental C.4) and expand per-response entries to the block dimensions
 # expected by gibbs_mixed_cpp (alpha_c length qC; alpha_p, beta_p length qP).
 
-# Fit the mixed-kernel Gibbs sampler for a single k
-fit_gibbs_mixed <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp) {
-  gibbs_mixed_cpp(
-    Y_N,
-    Y_C,
-    Y_P,
-    k,
-    n_iter,
-    n_burnin,
-    if (is.null(alpha)) -1 else alpha, # -1 -> alpha = k, set in C++
-    pp$beta0,
-    pp$nu0,
-    pp$eps0,
-    pp$alpha_c,
-    pp$alpha_p,
-    pp$beta_p
-  )
+# Fit the mixed-kernel mixture for a single k. The collapsed samplers
+# ("nonreversible", "marginal") update the allocations with (w, theta)
+# integrated out and draw (w, theta) | z at saved iterations; "conditional"
+# alternates z | (w, theta) and (w, theta) | z. All return the same output,
+# with the sampler name in attr(fit, "sampler").
+fit_gibbs_mixed <- function(
+  Y_N,
+  Y_C,
+  Y_P,
+  k,
+  n_iter,
+  n_burnin,
+  alpha,
+  pp,
+  sampler
+) {
+  alpha <- if (is.null(alpha)) -1 else alpha # -1 -> alpha = k, set in C++
+  fit <- if (sampler == "conditional") {
+    gibbs_mixed_cpp(
+      Y_N,
+      Y_C,
+      Y_P,
+      k,
+      n_iter,
+      n_burnin,
+      alpha,
+      pp$beta0,
+      pp$nu0,
+      pp$eps0,
+      pp$alpha_c,
+      pp$alpha_p,
+      pp$beta_p
+    )
+  } else {
+    collapsed_mixed_cpp(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, sampler)
+  }
+  attr(fit, "sampler") <- sampler
+  fit
 }
 
 # Core of the WAIC step: fit the baseline mixture for each candidate k,
@@ -32,6 +53,7 @@ select_k_core <- function(
   n_burnin,
   alpha,
   pp,
+  sampler,
   verbose = TRUE
 ) {
   list_models <- list()
@@ -49,7 +71,8 @@ select_k_core <- function(
       n_iter,
       n_burnin,
       alpha,
-      pp
+      pp,
+      sampler
     )
     list_waic[[name]] <- suppressWarnings(
       loo::waic(list_models[[name]]$log_lik)
@@ -91,6 +114,14 @@ select_k_core <- function(
 #' @param alpha
 #' @param prior_params
 #' @param verbose
+#' @param sampler Stage-1 sampler for the mixture. `"nonreversible"` (the
+#'   default) is the lifted non-reversible sampler of Ascolani and Zanella
+#'   (2025) on the collapsed posterior of the allocations, `"marginal"` is the
+#'   collapsed (marginal) Gibbs sampler, and `"conditional"` is the Gibbs
+#'   sampler that alternates between the allocations and the mixture
+#'   parameters. The collapsed samplers draw the weights and kernel parameters
+#'   given the allocations at every saved iteration. For all three, one
+#'   iteration is n single-observation updates of the allocations.
 #'
 #' @returns
 #'
@@ -105,8 +136,10 @@ select_k <- function(
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
-  verbose = TRUE
+  verbose = TRUE,
+  sampler = c("nonreversible", "marginal", "conditional")
 ) {
+  sampler <- match.arg(sampler)
   resp <- split_response(Y, y_types)
   pp <- expand_prior_params(
     prior_params,
@@ -123,6 +156,7 @@ select_k <- function(
     n_burnin,
     alpha,
     pp,
+    sampler,
     verbose
   )
 }

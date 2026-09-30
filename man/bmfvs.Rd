@@ -17,8 +17,16 @@ bmfvs(
   kappa = c(1/2, 1/6, 1/6, 1/6),
   empirical_bayes = TRUE,
   verbose = TRUE,
-  gibbs_fit = NULL
+  gibbs_fit = NULL,
+  backend = c("cpp", "r"),
+  n_threads = default_threads(),
+  sampler = c("nonreversible", "marginal", "conditional")
 )
+}
+\arguments{
+\item{sampler}{Stage-1 sampler for the mixture (see \code{\link[=select_k]{select_k()}}):
+\code{"nonreversible"} (default), \code{"marginal"} or \code{"conditional"}. Ignored
+when \code{gibbs_fit} is supplied.}
 }
 \description{
 Bayesian Model-Free Variable Screening (BMFVS)

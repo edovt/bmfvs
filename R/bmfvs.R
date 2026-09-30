@@ -13,6 +13,9 @@
 #' @param empirical_bayes
 #' @param verbose
 #' @param gibbs_fit
+#' @param sampler Stage-1 sampler for the mixture (see [select_k()]):
+#'   `"nonreversible"` (default), `"marginal"` or `"conditional"`. Ignored
+#'   when `gibbs_fit` is supplied.
 #'
 #' @returns
 #'
@@ -34,9 +37,11 @@ bmfvs <- function(
   verbose = TRUE,
   gibbs_fit = NULL,
   backend = c("cpp", "r"),
-  n_threads = default_threads()
+  n_threads = default_threads(),
+  sampler = c("nonreversible", "marginal", "conditional")
 ) {
   backend <- match.arg(backend)
+  sampler <- match.arg(sampler)
   # Stage 0: checks and response splitting ----------------------------------
   resp <- split_response(Y, y_types)
   Y_N <- resp$Y_N
@@ -77,11 +82,24 @@ bmfvs <- function(
     fit <- if (!is.null(gibbs_fit$fit)) gibbs_fit$fit else gibbs_fit
     k <- ncol(fit$w)
     if (verbose) {
-      cat("Stage 1: using supplied Gibbs fit (k =", k, ")...\n")
+      cat(
+        "Stage 1: using supplied fit (k =",
+        k,
+        if (!is.null(attr(fit, "sampler"))) {
+          paste0(", sampler = ", attr(fit, "sampler"))
+        },
+        ")...\n"
+      )
     }
   } else if (length(k) > 1) {
     if (verbose) {
-      cat("Stage 1: selecting k via WAIC (candidates:", k, ")...\n")
+      cat(
+        "Stage 1: selecting k via WAIC (candidates:",
+        k,
+        ", sampler =",
+        sampler,
+        ")...\n"
+      )
     }
     sel <- select_k_core(
       Y_N,
@@ -92,6 +110,7 @@ bmfvs <- function(
       n_burnin,
       alpha,
       prior_params,
+      sampler,
       verbose
     )
     k <- sel$k
@@ -100,7 +119,9 @@ bmfvs <- function(
   } else {
     if (verbose) {
       cat(
-        "Stage 1: Gibbs sampler (k =",
+        "Stage 1:",
+        sampler,
+        "sampler (k =",
         k,
         ", qN =",
         qN,
@@ -121,7 +142,8 @@ bmfvs <- function(
       n_iter,
       n_burnin,
       alpha,
-      prior_params
+      prior_params,
+      sampler
     )
   }
 
