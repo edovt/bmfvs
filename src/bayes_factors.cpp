@@ -135,9 +135,11 @@ List log_bf_sample_cpp(
 
   // --------------------------------------------------- BF_{j2} product Poisson
   std::vector<double> pois_a(k * std::max(qP, 1)), pois_lga(k * std::max(qP, 1));
+  std::vector<double> LTR(qP > 0 ? n + 1 : 0);  // log(tau_rho + c)
   double bf2p_shared = 0.0, log_tau_rho = 0.0;
   if (qP > 0) {
     log_tau_rho = std::log(tau_rho);
+    for (int c = 0; c <= n; c++) LTR[c] = std::log(tau_rho + c);
     for (int h = 0; h < k; h++)
       for (int t = 0; t < qP; t++) {
         const double r = rho_(h, t);
@@ -155,7 +157,7 @@ List log_bf_sample_cpp(
   const int kN = qN > 0 ? k : 0;
   std::vector<arma::mat> Sig_inv(kN), tau_Sig(kN);
   std::vector<arma::vec> mu_h(kN);
-  std::vector<double> P_h(kN), LMG(qN > 0 ? n + 1 : 0);
+  std::vector<double> P_h(kN), LMG(qN > 0 ? n + 1 : 0), LTM(qN > 0 ? n + 1 : 0);
   double bf2n_shared = 0.0;
   if (qN > 0) {
     const double lg_prior = lmvgamma_scalar(tau_sigma / 2.0, qN);
@@ -183,11 +185,14 @@ List log_bf_sample_cpp(
       bf2n_shared += quad / 2.0;
     }
     for (int c = 0; c <= n; c++) LMG[c] = lmvgamma_scalar((tau_sigma + c) / 2.0, qN);
+    // log(tau_mu + c), formerly evaluated once per non-empty cell
+    for (int c = 0; c <= n; c++) LTM[c] = std::log(tau_mu + c);
   }
 
   // ------------------------------------------------------ per-predictor pass
   NumericVector out1(p), out2(p);
   double *o1 = REAL(out1), *o2 = REAL(out2);
+  const bool gauss1_only = (qN == 1 && qC == 0 && qP == 0);
 
 #ifdef _OPENMP
 #pragma omp parallel if (n_threads > 1) num_threads(n_threads)
@@ -218,6 +223,24 @@ List log_bf_sample_cpp(
       }
 
       // ---- one pass over observations: fill every cell statistic ----------
+      // Pure univariate Gaussian response (the common screening case): the
+      // same accumulations in the same order, without the per-observation
+      // block dispatch; n_j(ell) is then the (exact, integer) sum of the
+      // n_jh(ell) over h.
+      if (gauss1_only) {
+        for (int i = 0; i < n; i++) {
+          const size_t cell = (size_t)Xj[i] * k + z[i];
+          const double ya = YN[i];
+          cnt[cell]++;
+          gsum[cell] += ya;
+          gss[cell] += ya * ya;
+        }
+        for (int ell = 0; ell < d; ell++) {
+          int tot = 0;
+          for (int h = 0; h < k; h++) tot += cnt[(size_t)ell * k + h];
+          cnt_lev[ell] = tot;
+        }
+      } else
       for (int i = 0; i < n; i++) {
         const int ell = Xj[i], h = z[i];
         const size_t cell = (size_t)ell * k + h;
@@ -260,7 +283,7 @@ List log_bf_sample_cpp(
           if (qC > 0) v2 -= qC * DCtau[c];
           if (qP > 0) {
             const double *ps = &psum[((size_t)ell * k + h) * qP];
-            const double ltn = std::log(tau_rho + c);
+            const double ltn = LTR[c];
             for (int t = 0; t < qP; t++) {
               const double a = pois_a[h * qP + t];
               v2 += std::lgamma(a + ps[t]) - pois_lga[h * qP + t] +
@@ -284,7 +307,12 @@ List log_bf_sample_cpp(
                 Lam(b, a) = val;
               }
             double ld_Lam;
-            if (arma::chol(R, Lam)) {
+            if (qN == 1 && Lam(0, 0) > 0.0) {
+              // 1 x 1 Cholesky: R = sqrt(Lambda), and the general branch's
+              // 0.0 + 2 log R(0, 0); the same operations as LAPACK potrf
+              // followed by the loop below, without the LAPACK call
+              ld_Lam = 2.0 * std::log(std::sqrt(Lam(0, 0)));
+            } else if (arma::chol(R, Lam)) {
               ld_Lam = 0.0;
               for (int a = 0; a < qN; a++) ld_Lam += 2.0 * std::log(R(a, a));
             } else {
@@ -293,7 +321,7 @@ List log_bf_sample_cpp(
             }
             v2 += c * qN / 2.0 * M_LN2 + LMG[c] -
                   (tau_sigma + c) / 2.0 * ld_Lam -
-                  qN / 2.0 * std::log(tau_mu + c) + P_h[h];
+                  qN / 2.0 * LTM[c] + P_h[h];
           }
         }
       }
