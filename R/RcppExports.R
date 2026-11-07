@@ -29,6 +29,14 @@ collapsed_mixed_cpp <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, s
     .Call(`_bmfvs_collapsed_mixed_cpp`, Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, pp, sampler, xi)
 }
 
+eb_phi_sums_cpp <- function(log_bf1, log_bf2, log_kappa) {
+    .Call(`_bmfvs_eb_phi_sums_cpp`, log_bf1, log_bf2, log_kappa)
+}
+
+posterior_probs_cpp <- function(log_bf1, log_bf2, log_kappa) {
+    .Call(`_bmfvs_posterior_probs_cpp`, log_bf1, log_bf2, log_kappa)
+}
+
 gibbs_mixed_cpp <- function(Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha = -1, beta0 = 0.01, nu0_ = NULL, eps0_ = NULL, alpha_c_ = NULL, alpha_p_ = NULL, beta_p_ = NULL) {
     .Call(`_bmfvs_gibbs_mixed_cpp`, Y_N, Y_C, Y_P, k, n_iter, n_burnin, alpha, beta0, nu0_, eps0_, alpha_c_, alpha_p_, beta_p_)
 }

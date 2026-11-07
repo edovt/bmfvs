@@ -207,18 +207,27 @@ bmfvs <- function(
     if (verbose) {
       cat("Empirical Bayes: estimating kappa...\n")
     }
-    kappa <- estimate_kappa(log_bf1, log_bf2, kappa_init = kappa)
+    kappa <- estimate_kappa(
+      log_bf1,
+      log_bf2,
+      kappa_init = kappa,
+      backend = backend
+    )
   }
 
   # Stage 3: compute posterior probabilities P(H0j) -------------------------
   if (verbose) {
     cat("Stage 3: P(H0j)...\n")
   }
-  b1 <- as.vector(log_bf1)
-  b2 <- as.vector(log_bf2)
-  wts <- bf_weights(log(kappa), b1, b2, b1 + b2)
-  prob_null <- colMeans(matrix(wts$w0, nrow = S))
+  post <- posterior_probs(log_bf1, log_bf2, kappa, backend = backend)
+  prob_null <- post$prob_null
   names(prob_null) <- colnames(X)
+  # log P(H0j) by log-sum-exp: prob_null underflows to exactly 0 for strong
+  # signals, which produces ties in the ranking; log_prob_null does not
+  log_prob_null <- post$log_prob_null
+  names(log_prob_null) <- colnames(X)
+  prob_h1 <- post$prob_h1
+  rownames(prob_h1) <- colnames(X)
 
   if (verbose) {
     cat("Done.\n")
@@ -235,7 +244,10 @@ bmfvs <- function(
       waic = waic,
       fit = fit,
       y_types = resp$y_types,
-      y_levels = resp$y_levels
+      y_levels = resp$y_levels,
+      # Additions (appended so that existing elements keep their positions)
+      log_prob_null = log_prob_null,
+      prob_h1 = prob_h1
     ),
     class = "bmfvs"
   )
