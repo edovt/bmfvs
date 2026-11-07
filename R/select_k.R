@@ -56,14 +56,21 @@ select_k_core <- function(
   sampler,
   verbose = TRUE
 ) {
-  list_models <- list()
+  # Only the fit with the largest elpd_waic so far is kept, so at most two
+  # fits are alive at a time instead of length(k_vec). The rule (first
+  # maximum, NA elpd never preferred) is the order used by loo_compare()
+  # (stable decreasing order, NA last), so the retained fit is the one that
+  # loo_compare() ranks first; this is checked below.
   list_waic <- list()
+  best_fit <- NULL
+  best_fit_name <- NULL
+  best_elpd <- NA_real_
   for (k in k_vec) {
     name <- paste0("k=", k)
     if (verbose) {
       cat("  Fitting k =", k, "...\n")
     }
-    list_models[[name]] <- fit_gibbs_mixed(
+    fit_k <- fit_gibbs_mixed(
       Y_N,
       Y_C,
       Y_P,
@@ -75,8 +82,18 @@ select_k_core <- function(
       sampler
     )
     list_waic[[name]] <- suppressWarnings(
-      loo::waic(list_models[[name]]$log_lik)
+      loo::waic(fit_k$log_lik)
     )
+    elpd_k <- list_waic[[name]]$estimates["elpd_waic", "Estimate"]
+    if (
+      is.null(best_fit) ||
+        (!is.na(elpd_k) && (is.na(best_elpd) || elpd_k > best_elpd))
+    ) {
+      best_fit <- fit_k
+      best_fit_name <- name
+      best_elpd <- elpd_k
+    }
+    rm(fit_k)
   }
 
   if (length(k_vec) == 1) {
@@ -97,7 +114,13 @@ select_k_core <- function(
     cat("Selected k =", best_k, "\n")
   }
 
-  list(k = best_k, fit = list_models[[best_name]], comparison = comparison)
+  if (!identical(best_name, best_fit_name)) {
+    stop(
+      "select_k: retained fit (", best_fit_name, ") differs from the model ",
+      "ranked first by loo_compare() (", best_name, ")"
+    )
+  }
+  list(k = best_k, fit = best_fit, comparison = comparison)
 }
 
 #' Select the number of mixture components k via WAIC
