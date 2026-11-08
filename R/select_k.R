@@ -42,8 +42,35 @@ fit_gibbs_mixed <- function(
   fit
 }
 
+# Validate the settings of the adaptive search used when k = NULL and resolve
+# the default cap k_max = min(n, 100).
+check_k_search <- function(n, k_init, k_step, k_max) {
+  is_count <- function(x) {
+    is.numeric(x) && length(x) == 1 && !is.na(x) && x >= 1 && x == round(x)
+  }
+  if (!is_count(k_init)) stop("k_init must be a single integer >= 1")
+  if (!is_count(k_step)) stop("k_step must be a single integer >= 1")
+  if (is.null(k_max)) {
+    k_max <- min(n, 100L)
+  }
+  if (!is_count(k_max)) stop("k_max must be a single integer >= 1")
+  list(
+    k_init = as.integer(min(k_init, k_max)),
+    k_step = as.integer(k_step),
+    k_max = as.integer(k_max)
+  )
+}
+
 # Core of the WAIC step: fit the baseline mixture for each candidate k,
-# compare via WAIC (loo package), return the best k and its fit
+# compare via WAIC (loo package), return the best k and its fit.
+#
+# k_vec = NULL runs the adaptive search: fit k = 1, ..., k_init; while the
+# WAIC-best k lies in the top window (k_best >= upper - k_step) and upper <
+# k_max, fit the next k_step values (upper + 1, ..., upper + k_step) and
+# re-select over everything fitted so far. Each k is fitted once, in
+# increasing order, so the first window reproduces k_vec = 1:k_init exactly
+# (same fits, same RNG stream), and when no extension is needed the result
+# is identical to k_vec = 1:k_init.
 select_k_core <- function(
   Y_N,
   Y_C,
@@ -54,7 +81,10 @@ select_k_core <- function(
   alpha,
   pp,
   sampler,
-  verbose = TRUE
+  verbose = TRUE,
+  k_init = 20L,
+  k_step = 10L,
+  k_max = NULL
 ) {
   # Only the fit with the largest elpd_waic so far is kept, so at most two
   # fits are alive at a time instead of length(k_vec). The rule (first
@@ -64,36 +94,68 @@ select_k_core <- function(
   list_waic <- list()
   best_fit <- NULL
   best_fit_name <- NULL
+  best_k_so_far <- NA_integer_
   best_elpd <- NA_real_
-  for (k in k_vec) {
-    name <- paste0("k=", k)
-    if (verbose) {
-      cat("  Fitting k =", k, "...\n")
+  scan_k <- function(ks) {
+    for (k in ks) {
+      name <- paste0("k=", k)
+      if (verbose) {
+        cat("  Fitting k =", k, "...\n")
+      }
+      fit_k <- fit_gibbs_mixed(
+        Y_N,
+        Y_C,
+        Y_P,
+        k,
+        n_iter,
+        n_burnin,
+        alpha,
+        pp,
+        sampler
+      )
+      list_waic[[name]] <<- suppressWarnings(
+        loo::waic(fit_k$log_lik)
+      )
+      elpd_k <- list_waic[[name]]$estimates["elpd_waic", "Estimate"]
+      if (
+        is.null(best_fit) ||
+          (!is.na(elpd_k) && (is.na(best_elpd) || elpd_k > best_elpd))
+      ) {
+        best_fit <<- fit_k
+        best_fit_name <<- name
+        best_k_so_far <<- k
+        best_elpd <<- elpd_k
+      }
+      rm(fit_k)
     }
-    fit_k <- fit_gibbs_mixed(
-      Y_N,
-      Y_C,
-      Y_P,
-      k,
-      n_iter,
-      n_burnin,
-      alpha,
-      pp,
-      sampler
-    )
-    list_waic[[name]] <- suppressWarnings(
-      loo::waic(fit_k$log_lik)
-    )
-    elpd_k <- list_waic[[name]]$estimates["elpd_waic", "Estimate"]
-    if (
-      is.null(best_fit) ||
-        (!is.na(elpd_k) && (is.na(best_elpd) || elpd_k > best_elpd))
-    ) {
-      best_fit <- fit_k
-      best_fit_name <- name
-      best_elpd <- elpd_k
+  }
+
+  if (is.null(k_vec)) {
+    ks <- check_k_search(nrow(Y_N), k_init, k_step, k_max)
+    upper <- ks$k_init
+    scan_k(seq_len(upper))
+    while (best_k_so_far >= upper - ks$k_step && upper < ks$k_max) {
+      new_upper <- min(upper + ks$k_step, ks$k_max)
+      if (verbose) {
+        cat(
+          "  Best k so far is", best_k_so_far,
+          "(within k_step =", ks$k_step, "of the upper end", upper,
+          "): extending candidates to k =", upper + 1, "...", new_upper, "\n"
+        )
+      }
+      scan_k((upper + 1):new_upper)
+      upper <- new_upper
     }
-    rm(fit_k)
+    if (best_k_so_far >= upper - ks$k_step && upper >= ks$k_max) {
+      warning(
+        "select_k: the WAIC-best k (", best_k_so_far, ") is within k_step of ",
+        "k_max = ", ks$k_max, "; consider a larger k_max.",
+        call. = FALSE
+      )
+    }
+    k_vec <- seq_len(upper)
+  } else {
+    scan_k(k_vec)
   }
 
   if (length(k_vec) == 1) {
@@ -120,17 +182,34 @@ select_k_core <- function(
       "ranked first by loo_compare() (", best_name, ")"
     )
   }
-  list(k = best_k, fit = best_fit, comparison = comparison)
+  list(
+    k = best_k,
+    fit = best_fit,
+    comparison = comparison,
+    k_candidates = k_vec
+  )
 }
 
 #' Select the number of mixture components k via WAIC
 #'
-#' Fits the baseline mixture model for each value in 'k' and compares the fits
-#' using WAIC. The returned fit can be inspected with [plot_gibbs()] and
-#' passed to [bmfvs()] to skip the Gibbs sampling stage.
+#' Fits the baseline mixture model for each candidate number of components and
+#' compares the fits using WAIC. The returned fit can be inspected with
+#' [plot_gibbs()] and passed to [bmfvs()] to skip the Gibbs sampling stage.
 #'
 #' @param Y
-#' @param k
+#' @param k Candidate numbers of components. A numeric vector fits exactly
+#'   those values (a single value skips the comparison). `NULL` (the default)
+#'   runs an adaptive search: k = 1, ..., `k_init` are fitted first; while the
+#'   WAIC-best k is within `k_step` of the largest value fitted so far, the
+#'   next `k_step` values are fitted and the selection is repeated over all
+#'   fits, up to `k_max`. Each k is fitted once, in increasing order, so when
+#'   no extension is needed the result is identical to `k = 1:k_init`.
+#' @param k_init,k_step,k_max Settings of the adaptive search used when
+#'   `k = NULL`: the initial candidates `1:k_init` (default 20), the size of
+#'   each extension and of the top window that triggers it (default 10), and
+#'   the largest k that may be fitted (default `min(n, 100)`). A warning is
+#'   given if the search stops at `k_max` with the best k still in the top
+#'   window. Ignored when `k` is supplied.
 #' @param n_iter
 #' @param n_burnin
 #' @param y_types
@@ -146,21 +225,26 @@ select_k_core <- function(
 #'   given the allocations at every saved iteration. For all three, one
 #'   iteration is n single-observation updates of the allocations.
 #'
-#' @returns
+#' @returns A list with the selected `k`, its `fit`, the WAIC `comparison`
+#'   ([loo::loo_compare()] output, or a single `waic` object) and
+#'   `k_candidates`, the values of k that were fitted.
 #'
 #' @export
 #' @examples
 #' NULL
 select_k <- function(
   Y,
-  k,
+  k = NULL,
   n_iter,
   n_burnin,
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
   verbose = TRUE,
-  sampler = c("nonreversible", "marginal", "conditional")
+  sampler = c("nonreversible", "marginal", "conditional"),
+  k_init = 20L,
+  k_step = 10L,
+  k_max = NULL
 ) {
   sampler <- match.arg(sampler)
   resp <- split_response(Y, y_types)
@@ -180,6 +264,9 @@ select_k <- function(
     alpha,
     pp,
     sampler,
-    verbose
+    verbose,
+    k_init = k_init,
+    k_step = k_step,
+    k_max = k_max
   )
 }

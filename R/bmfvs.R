@@ -4,7 +4,11 @@
 #' @param X
 #' @param n_iter
 #' @param n_burnin
-#' @param k
+#' @param k Number of mixture components. A single value fits that k; a
+#'   vector selects among its values by WAIC; `NULL` (the default) runs the
+#'   adaptive WAIC search of [select_k()] (start at `1:k_init`, extend by
+#'   `k_step` while the best k is in the top window, up to `k_max`). Ignored
+#'   when `gibbs_fit` is supplied.
 #' @param y_types
 #' @param alpha
 #' @param prior_params
@@ -16,6 +20,8 @@
 #' @param sampler Stage-1 sampler for the mixture (see [select_k()]):
 #'   `"nonreversible"` (default), `"marginal"` or `"conditional"`. Ignored
 #'   when `gibbs_fit` is supplied.
+#' @param k_init,k_step,k_max Settings of the adaptive search used when
+#'   `k = NULL`; see [select_k()].
 #'
 #' @returns
 #'
@@ -27,7 +33,7 @@ bmfvs <- function(
   X,
   n_iter,
   n_burnin,
-  k,
+  k = NULL,
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
@@ -38,7 +44,10 @@ bmfvs <- function(
   gibbs_fit = NULL,
   backend = c("cpp", "r"),
   n_threads = default_threads(),
-  sampler = c("nonreversible", "marginal", "conditional")
+  sampler = c("nonreversible", "marginal", "conditional"),
+  k_init = 20L,
+  k_step = 10L,
+  k_max = NULL
 ) {
   backend <- match.arg(backend)
   sampler <- match.arg(sampler)
@@ -76,8 +85,9 @@ bmfvs <- function(
   )
 
   # Stage 1: Gibbs sampler of marginal posterior ----------------------------
-  # If k is a vector, the WAIC step selects the best k
+  # If k is a vector (or NULL, adaptive search), the WAIC step selects k
   waic <- NULL
+  k_candidates <- NULL
   if (!is.null(gibbs_fit)) {
     fit <- if (!is.null(gibbs_fit$fit)) gibbs_fit$fit else gibbs_fit
     k <- ncol(fit$w)
@@ -91,15 +101,29 @@ bmfvs <- function(
         ")...\n"
       )
     }
-  } else if (length(k) > 1) {
+  } else if (is.null(k) || length(k) > 1) {
     if (verbose) {
-      cat(
-        "Stage 1: selecting k via WAIC (candidates:",
-        k,
-        ", sampler =",
-        sampler,
-        ")...\n"
-      )
+      if (is.null(k)) {
+        cat(
+          "Stage 1: selecting k via adaptive WAIC search (start 1 ...",
+          k_init,
+          ", step",
+          k_step,
+          ", max",
+          if (is.null(k_max)) paste0("min(n, 100) = ", min(n, 100)) else k_max,
+          ", sampler =",
+          sampler,
+          ")...\n"
+        )
+      } else {
+        cat(
+          "Stage 1: selecting k via WAIC (candidates:",
+          k,
+          ", sampler =",
+          sampler,
+          ")...\n"
+        )
+      }
     }
     sel <- select_k_core(
       Y_N,
@@ -111,11 +135,15 @@ bmfvs <- function(
       alpha,
       prior_params,
       sampler,
-      verbose
+      verbose,
+      k_init = k_init,
+      k_step = k_step,
+      k_max = k_max
     )
     k <- sel$k
     fit <- sel$fit
     waic <- sel$comparison
+    k_candidates <- sel$k_candidates
   } else {
     if (verbose) {
       cat(
@@ -247,7 +275,10 @@ bmfvs <- function(
       y_levels = resp$y_levels,
       # Additions (appended so that existing elements keep their positions)
       log_prob_null = log_prob_null,
-      prob_h1 = prob_h1
+      prob_h1 = prob_h1,
+      # Values of k fitted by the WAIC step (NULL when k was fixed or a fit
+      # was supplied)
+      k_candidates = k_candidates
     ),
     class = "bmfvs"
   )

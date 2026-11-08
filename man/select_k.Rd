@@ -6,17 +6,28 @@
 \usage{
 select_k(
   Y,
-  k,
+  k = NULL,
   n_iter,
   n_burnin,
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
   verbose = TRUE,
-  sampler = c("nonreversible", "marginal", "conditional")
+  sampler = c("nonreversible", "marginal", "conditional"),
+  k_init = 20L,
+  k_step = 10L,
+  k_max = NULL
 )
 }
 \arguments{
+\item{k}{Candidate numbers of components. A numeric vector fits exactly
+those values (a single value skips the comparison). \code{NULL} (the default)
+runs an adaptive search: k = 1, ..., \code{k_init} are fitted first; while the
+WAIC-best k is within \code{k_step} of the largest value fitted so far, the
+next \code{k_step} values are fitted and the selection is repeated over all
+fits, up to \code{k_max}. Each k is fitted once, in increasing order, so when
+no extension is needed the result is identical to \code{k = 1:k_init}.}
+
 \item{sampler}{Stage-1 sampler for the mixture. \code{"nonreversible"} (the
 default) is the lifted non-reversible sampler of Ascolani and Zanella
 (2025) on the collapsed posterior of the allocations, \code{"marginal"} is the
@@ -25,11 +36,23 @@ sampler that alternates between the allocations and the mixture
 parameters. The collapsed samplers draw the weights and kernel parameters
 given the allocations at every saved iteration. For all three, one
 iteration is n single-observation updates of the allocations.}
+
+\item{k_init, k_step, k_max}{Settings of the adaptive search used when
+\code{k = NULL}: the initial candidates \code{1:k_init} (default 20), the size of
+each extension and of the top window that triggers it (default 10), and
+the largest k that may be fitted (default \code{min(n, 100)}). A warning is
+given if the search stops at \code{k_max} with the best k still in the top
+window. Ignored when \code{k} is supplied.}
+}
+\value{
+A list with the selected \code{k}, its \code{fit}, the WAIC \code{comparison}
+(\code{\link[loo:loo_compare]{loo::loo_compare()}} output, or a single \code{waic} object) and
+\code{k_candidates}, the values of k that were fitted.
 }
 \description{
-Fits the baseline mixture model for each value in 'k' and compares the fits
-using WAIC. The returned fit can be inspected with \code{\link[=plot_gibbs]{plot_gibbs()}} and
-passed to \code{\link[=bmfvs]{bmfvs()}} to skip the Gibbs sampling stage.
+Fits the baseline mixture model for each candidate number of components and
+compares the fits using WAIC. The returned fit can be inspected with
+\code{\link[=plot_gibbs]{plot_gibbs()}} and passed to \code{\link[=bmfvs]{bmfvs()}} to skip the Gibbs sampling stage.
 }
 \examples{
 NULL

@@ -9,7 +9,7 @@ bmfvs(
   X,
   n_iter,
   n_burnin,
-  k,
+  k = NULL,
   y_types = NULL,
   alpha = NULL,
   prior_params = list(),
@@ -20,13 +20,25 @@ bmfvs(
   gibbs_fit = NULL,
   backend = c("cpp", "r"),
   n_threads = default_threads(),
-  sampler = c("nonreversible", "marginal", "conditional")
+  sampler = c("nonreversible", "marginal", "conditional"),
+  k_init = 20L,
+  k_step = 10L,
+  k_max = NULL
 )
 }
 \arguments{
+\item{k}{Number of mixture components. A single value fits that k; a
+vector selects among its values by WAIC; \code{NULL} (the default) runs the
+adaptive WAIC search of \code{\link[=select_k]{select_k()}} (start at \code{1:k_init}, extend by
+\code{k_step} while the best k is in the top window, up to \code{k_max}). Ignored
+when \code{gibbs_fit} is supplied.}
+
 \item{sampler}{Stage-1 sampler for the mixture (see \code{\link[=select_k]{select_k()}}):
 \code{"nonreversible"} (default), \code{"marginal"} or \code{"conditional"}. Ignored
 when \code{gibbs_fit} is supplied.}
+
+\item{k_init, k_step, k_max}{Settings of the adaptive search used when
+\code{k = NULL}; see \code{\link[=select_k]{select_k()}}.}
 }
 \description{
 Bayesian Model-Free Variable Screening (BMFVS)

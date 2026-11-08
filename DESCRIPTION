@@ -12,7 +12,6 @@ Description: Bayesian model-free variable screening for multivariate responses
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.0.0
 Imports:
     graphics,
     loo,
@@ -30,3 +29,4 @@ LinkingTo:
     RcppArmadillo
 URL: https://github.com/edovt/bmfvs
 BugReports: https://github.com/edovt/bmfvs/issues
+Config/roxygen2/version: 8.1.0

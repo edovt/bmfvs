@@ -75,7 +75,7 @@ test_that("bmfvs() returns log_prob_null and prob_h1 without changing prob_null"
                verbose = FALSE, n_threads = 1)
   expect_named(res, c("prob_null", "kappa", "hyperparams", "log_bf1", "log_bf2",
                       "k", "waic", "fit", "y_types", "y_levels",
-                      "log_prob_null", "prob_h1"))
+                      "log_prob_null", "prob_h1", "k_candidates"))
   expect_length(res$log_prob_null, p)
   expect_equal(dim(res$prob_h1), c(p, 3L))
   ref <- posterior_probs(res$log_bf1, res$log_bf2, res$kappa, backend = "r")
