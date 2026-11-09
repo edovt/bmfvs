@@ -22,6 +22,8 @@ struct Weights {
   double e[4];
   double denom;
   double d0;  // t1 - m, the log of e[0] before exponentiation
+  double t[4];  // the unnormalized log terms t1, ..., t4
+  double m;     // max(t)
 };
 
 inline void bf_terms(double b1, double b2, const double* lk, Weights& out) {
@@ -34,6 +36,8 @@ inline void bf_terms(double b1, double b2, const double* lk, Weights& out) {
   if (t2 > m) m = t2;
   if (t3 > m) m = t3;
   if (t4 > m) m = t4;
+  out.t[0] = t1; out.t[1] = t2; out.t[2] = t3; out.t[3] = t4;
+  out.m = m;
   out.d0 = t1 - m;
   out.e[0] = std::exp(out.d0);
   out.e[1] = std::exp(t2 - m);
@@ -76,6 +80,12 @@ NumericVector eb_phi_sums_cpp(NumericVector log_bf1, NumericVector log_bf2,
 //   log_prob_null: log of prob_null computed by log-sum-exp of
 //              log w0 = (t1 - m) - log(denom), so it stays finite when the
 //              average underflows to 0.
+//   log_odds_h1: log P(H1j) - log P(H0j) = logit(1 - prob_null), with
+//              log P(H1j) the log-mean-exp over samples of
+//              log(1 - w0) = lse(t2, t3, t4) - lse(t1, ..., t4), the first
+//              log-sum-exp taken about its own maximum. It stays finite and
+//              ordered when prob_null rounds to exactly 1 (empirical Bayes at
+//              the kappa = (1, 0, 0, 0) corner) or to 0.
 // [[Rcpp::export]]
 List posterior_probs_cpp(NumericMatrix log_bf1, NumericMatrix log_bf2,
                          NumericVector log_kappa) {
@@ -88,9 +98,9 @@ List posterior_probs_cpp(NumericMatrix log_bf1, NumericMatrix log_bf2,
   const double* B2 = REAL(log_bf2);
   const double lk[4] = {log_kappa[0], log_kappa[1], log_kappa[2], log_kappa[3]};
 
-  NumericVector prob_null(p), log_prob_null(p);
+  NumericVector prob_null(p), log_prob_null(p), log_odds_h1(p);
   NumericMatrix prob_h1(p, 3);
-  std::vector<double> lw0(S);
+  std::vector<double> lw0(S), lw1(S);
   const long double LS = (long double)S;
   const double log_S = std::log((double)S);
   Weights w;
@@ -98,7 +108,7 @@ List posterior_probs_cpp(NumericMatrix log_bf1, NumericMatrix log_bf2,
     const double* b1 = B1 + (size_t)S * j;
     const double* b2 = B2 + (size_t)S * j;
     long double s0 = 0.0L, s1 = 0.0L, s2 = 0.0L, s3 = 0.0L;
-    double mx = -INFINITY;
+    double mx = -INFINITY, mx1 = -INFINITY;
     for (int s = 0; s < S; s++) {
       bf_terms(b1[s], b2[s], lk, w);
       s0 += w.e[0] / w.denom;
@@ -109,6 +119,17 @@ List posterior_probs_cpp(NumericMatrix log_bf1, NumericMatrix log_bf2,
       const double l = w.d0 - std::log(w.denom);
       lw0[s] = l;
       if (l > mx) mx = l;
+      // log(1 - w0) = log(e1 + e2 + e3) - log(denom), with the alternative
+      // terms rescaled by their own maximum so they cannot underflow
+      double ma = w.t[1];
+      if (w.t[2] > ma) ma = w.t[2];
+      if (w.t[3] > ma) ma = w.t[3];
+      const double l1 = (ma - w.m) +
+        std::log(std::exp(w.t[1] - ma) + std::exp(w.t[2] - ma) +
+                 std::exp(w.t[3] - ma)) -
+        std::log(w.denom);
+      lw1[s] = l1;
+      if (l1 > mx1) mx1 = l1;
     }
     s0 /= LS; s1 /= LS; s2 /= LS; s3 /= LS;
     prob_null[j] = (double)s0;
@@ -122,8 +143,46 @@ List posterior_probs_cpp(NumericMatrix log_bf1, NumericMatrix log_bf2,
     } else {
       log_prob_null[j] = mx;  // -Inf only if every log w0 is -Inf
     }
+    double log_prob_h1 = mx1;
+    if (std::isfinite(mx1)) {
+      long double acc = 0.0L;
+      for (int s = 0; s < S; s++) acc += std::exp(lw1[s] - mx1);
+      log_prob_h1 = mx1 + std::log((double)acc) - log_S;
+    }
+    log_odds_h1[j] = log_prob_h1 - log_prob_null[j];
   }
   return List::create(Named("prob_null") = prob_null,
                       Named("prob_h1") = prob_h1,
-                      Named("log_prob_null") = log_prob_null);
+                      Named("log_prob_null") = log_prob_null,
+                      Named("log_odds_h1") = log_odds_h1);
+}
+
+// log of the mean, over all S * p (sample, predictor) pairs, of BF_j1, BF_j2
+// and BF_j3 = BF_j1 * BF_j2, by two-pass log-sum-exp. Near the kappa =
+// (1, 0, 0, 0) corner Phi_t(kappa) ~ kappa_t * mean(BF_jt), so the corner
+// attracts the empirical Bayes iteration exactly when all three are < 0.
+// [[Rcpp::export]]
+NumericVector log_mean_bf_cpp(NumericVector log_bf1, NumericVector log_bf2) {
+  const R_xlen_t N = log_bf1.size();
+  if (log_bf2.size() != N) stop("log_bf1 and log_bf2 must have the same length");
+  const double* b1 = REAL(log_bf1);
+  const double* b2 = REAL(log_bf2);
+  double m1 = -INFINITY, m2 = -INFINITY, m3 = -INFINITY;
+  for (R_xlen_t i = 0; i < N; i++) {
+    if (b1[i] > m1) m1 = b1[i];
+    if (b2[i] > m2) m2 = b2[i];
+    const double b12 = b1[i] + b2[i];
+    if (b12 > m3) m3 = b12;
+  }
+  long double s1 = 0.0L, s2 = 0.0L, s3 = 0.0L;
+  for (R_xlen_t i = 0; i < N; i++) {
+    s1 += std::exp(b1[i] - m1);
+    s2 += std::exp(b2[i] - m2);
+    s3 += std::exp(b1[i] + b2[i] - m3);
+  }
+  const double lN = std::log((double)N);
+  return NumericVector::create(
+    Named("H1_weights") = m1 + std::log((double)s1) - lN,
+    Named("H1_kernel") = m2 + std::log((double)s2) - lN,
+    Named("H1_both") = m3 + std::log((double)s3) - lN);
 }

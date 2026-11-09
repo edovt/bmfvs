@@ -171,6 +171,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// log_mean_bf_cpp
+NumericVector log_mean_bf_cpp(NumericVector log_bf1, NumericVector log_bf2);
+RcppExport SEXP _bmfvs_log_mean_bf_cpp(SEXP log_bf1SEXP, SEXP log_bf2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type log_bf1(log_bf1SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_bf2(log_bf2SEXP);
+    rcpp_result_gen = Rcpp::wrap(log_mean_bf_cpp(log_bf1, log_bf2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gibbs_mixed_cpp
 List gibbs_mixed_cpp(const arma::mat& Y_N, const arma::imat& Y_C, const arma::mat& Y_P, int k, int n_iter, int n_burnin, double alpha, double beta0, Nullable<NumericVector> nu0_, Nullable<NumericVector> eps0_, Nullable<NumericVector> alpha_c_, Nullable<NumericVector> alpha_p_, Nullable<NumericVector> beta_p_);
 RcppExport SEXP _bmfvs_gibbs_mixed_cpp(SEXP Y_NSEXP, SEXP Y_CSEXP, SEXP Y_PSEXP, SEXP kSEXP, SEXP n_iterSEXP, SEXP n_burninSEXP, SEXP alphaSEXP, SEXP beta0SEXP, SEXP nu0_SEXP, SEXP eps0_SEXP, SEXP alpha_c_SEXP, SEXP alpha_p_SEXP, SEXP beta_p_SEXP) {
@@ -205,6 +217,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bmfvs_collapsed_mixed_cpp", (DL_FUNC) &_bmfvs_collapsed_mixed_cpp, 10},
     {"_bmfvs_eb_phi_sums_cpp", (DL_FUNC) &_bmfvs_eb_phi_sums_cpp, 3},
     {"_bmfvs_posterior_probs_cpp", (DL_FUNC) &_bmfvs_posterior_probs_cpp, 3},
+    {"_bmfvs_log_mean_bf_cpp", (DL_FUNC) &_bmfvs_log_mean_bf_cpp, 2},
     {"_bmfvs_gibbs_mixed_cpp", (DL_FUNC) &_bmfvs_gibbs_mixed_cpp, 13},
     {NULL, NULL, 0}
 };

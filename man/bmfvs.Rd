@@ -40,6 +40,38 @@ when \code{gibbs_fit} is supplied.}
 \item{k_init, k_step, k_max}{Settings of the adaptive search used when
 \code{k = NULL}; see \code{\link[=select_k]{select_k()}}.}
 }
+\value{
+An object of class \code{"bmfvs"}, a list with (among others)
+\describe{
+\item{\code{prob_null}}{Posterior probabilities \eqn{P(H_{0j} \mid Y, X_j)}.
+The screening rule of the paper keeps the predictors with \code{prob_null}
+below a threshold.}
+\item{\code{prob_h1}}{\eqn{p \times 3} matrix of the posterior probabilities
+of the three alternatives (weights, kernel parameters, both).}
+\item{\code{kappa}}{Prior probabilities of \eqn{(H_0, H_{11}, H_{12},
+    H_{13})}, estimated by empirical Bayes unless \code{empirical_bayes = FALSE}.}
+\item{\code{log_prob_null}}{\eqn{\log P(H_{0j} \mid Y, X_j)} computed by
+log-sum-exp; finite where \code{prob_null} underflows to 0.}
+\item{\code{log_odds_h1}}{Posterior log odds
+\eqn{\log P(H_{1j} \mid Y, X_j) - \log P(H_{0j} \mid Y, X_j)}, i.e.
+\code{prob_null} on the logit scale, computed so that it stays finite and
+ordered where \code{prob_null} rounds to exactly 0 or 1.}
+\item{\code{rank}}{Rank of each predictor by decreasing \code{log_odds_h1}
+(1 = strongest evidence; ties share the smallest rank). It equals the
+ranking by increasing \code{prob_null} wherever \code{prob_null} separates the
+predictors; use it to retain a fixed number of predictors.}
+\item{\code{eb_collapsed}}{\code{TRUE} (with a warning) when empirical Bayes
+converges to the \eqn{\kappa = (1, 0, 0, 0)} corner, i.e. when the
+Bayes factors averaged over all predictors and posterior samples
+(\code{eb_log_mean_bf}) are all below 1. Posterior null probabilities are
+then close to 1, thresholding \code{prob_null} selects few or no
+predictors, and \code{rank} orders predictors by their evidence only.}
+\item{\code{eb_log_mean_bf}}{log of the three Bayes factors averaged over
+predictors and posterior samples.}
+\item{\code{k}, \code{k_candidates}, \code{waic}, \code{fit}, \code{log_bf1}, \code{log_bf2},
+\code{hyperparams}}{Stage-1 and stage-2 details.}
+}
+}
 \description{
 Bayesian Model-Free Variable Screening (BMFVS)
 }

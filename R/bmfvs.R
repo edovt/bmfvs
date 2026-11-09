@@ -23,7 +23,36 @@
 #' @param k_init,k_step,k_max Settings of the adaptive search used when
 #'   `k = NULL`; see [select_k()].
 #'
-#' @returns
+#' @returns An object of class `"bmfvs"`, a list with (among others)
+#' \describe{
+#'   \item{`prob_null`}{Posterior probabilities \eqn{P(H_{0j} \mid Y, X_j)}.
+#'     The screening rule of the paper keeps the predictors with `prob_null`
+#'     below a threshold.}
+#'   \item{`prob_h1`}{\eqn{p \times 3} matrix of the posterior probabilities
+#'     of the three alternatives (weights, kernel parameters, both).}
+#'   \item{`kappa`}{Prior probabilities of \eqn{(H_0, H_{11}, H_{12},
+#'     H_{13})}, estimated by empirical Bayes unless `empirical_bayes = FALSE`.}
+#'   \item{`log_prob_null`}{\eqn{\log P(H_{0j} \mid Y, X_j)} computed by
+#'     log-sum-exp; finite where `prob_null` underflows to 0.}
+#'   \item{`log_odds_h1`}{Posterior log odds
+#'     \eqn{\log P(H_{1j} \mid Y, X_j) - \log P(H_{0j} \mid Y, X_j)}, i.e.
+#'     `prob_null` on the logit scale, computed so that it stays finite and
+#'     ordered where `prob_null` rounds to exactly 0 or 1.}
+#'   \item{`rank`}{Rank of each predictor by decreasing `log_odds_h1`
+#'     (1 = strongest evidence; ties share the smallest rank). It equals the
+#'     ranking by increasing `prob_null` wherever `prob_null` separates the
+#'     predictors; use it to retain a fixed number of predictors.}
+#'   \item{`eb_collapsed`}{`TRUE` (with a warning) when empirical Bayes
+#'     converges to the \eqn{\kappa = (1, 0, 0, 0)} corner, i.e. when the
+#'     Bayes factors averaged over all predictors and posterior samples
+#'     (`eb_log_mean_bf`) are all below 1. Posterior null probabilities are
+#'     then close to 1, thresholding `prob_null` selects few or no
+#'     predictors, and `rank` orders predictors by their evidence only.}
+#'   \item{`eb_log_mean_bf`}{log of the three Bayes factors averaged over
+#'     predictors and posterior samples.}
+#'   \item{`k`, `k_candidates`, `waic`, `fit`, `log_bf1`, `log_bf2`,
+#'     `hyperparams`}{Stage-1 and stage-2 details.}
+#' }
 #'
 #' @export
 #' @examples
@@ -256,6 +285,32 @@ bmfvs <- function(
   names(log_prob_null) <- colnames(X)
   prob_h1 <- post$prob_h1
   rownames(prob_h1) <- colnames(X)
+  # Posterior log odds of H1j, logit(1 - prob_null) computed in log space: the
+  # same ordering as prob_null wherever prob_null separates predictors, and
+  # still ordered where prob_null rounds to exactly 0 or 1. Predictors are
+  # ranked by it (1 = strongest evidence for dependence).
+  log_odds_h1 <- post$log_odds_h1
+  names(log_odds_h1) <- colnames(X)
+  rank <- base::rank(-log_odds_h1, ties.method = "min")
+
+  eb_log_mean_bf <- log_mean_bf(log_bf1, log_bf2, backend = backend)
+  eb_collapsed <- empirical_bayes && eb_corner(eb_log_mean_bf)
+  if (eb_collapsed) {
+    warning(
+      "Empirical Bayes is converging to kappa_0 = 1 (kappa = ",
+      paste(signif(kappa, 3), collapse = ", "),
+      "): the Bayes factors averaged over all predictors and posterior ",
+      "samples are below 1 (log means ",
+      paste(round(eb_log_mean_bf, 2), collapse = ", "),
+      "), so the data give no overall evidence that any predictor is ",
+      "associated with the response. Posterior null probabilities are close ",
+      "to 1 and thresholding prob_null selects few or no predictors. `rank` ",
+      "(from `log_odds_h1`) still orders the predictors by their evidence if ",
+      "a fixed-size screened set is required, but no predictor is ",
+      "individually supported by the data.",
+      call. = FALSE
+    )
+  }
 
   if (verbose) {
     cat("Done.\n")
@@ -278,7 +333,11 @@ bmfvs <- function(
       prob_h1 = prob_h1,
       # Values of k fitted by the WAIC step (NULL when k was fixed or a fit
       # was supplied)
-      k_candidates = k_candidates
+      k_candidates = k_candidates,
+      log_odds_h1 = log_odds_h1,
+      rank = rank,
+      eb_collapsed = eb_collapsed,
+      eb_log_mean_bf = eb_log_mean_bf
     ),
     class = "bmfvs"
   )
